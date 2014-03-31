@@ -41,7 +41,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Scanner;
 import javax.swing.JFileChooser;
@@ -100,6 +99,7 @@ public class WorkspaceController {
     /**
      * Sets the file path for the language definition file, if the
      * language definition file is located in
+     * @param filePath
      */
     public void setLangDefFilePath(String filePath) {
 
@@ -121,11 +121,8 @@ public class WorkspaceController {
             langDefDirty = true;
 
         } catch (ParserConfigurationException e) {
-            e.printStackTrace();
         } catch (SAXException e) {
-            e.printStackTrace();
         } catch (IOException e) {
-            e.printStackTrace();
         }
 
     }
@@ -237,7 +234,7 @@ public class WorkspaceController {
      * @return the save string for the entire workspace.
      */
     public String getSaveString() {
-        StringBuffer saveString = new StringBuffer();
+        StringBuilder saveString = new StringBuilder();
         //append the save data
         saveString.append("<?xml version=\"1.0\" encoding=\"ISO-8859\"?>");
         saveString.append("\r\n");
@@ -455,6 +452,7 @@ public class WorkspaceController {
     /**
      * Returns a SearchBar instance capable of searching for blocks
      * within the BlockCanvas and block drawers
+     * @return 
      */
     public JComponent getSearchBar() {
         SearchBar searchBar = new SearchBar("Search blocks", "Search for blocks in the drawers and workspace", workspace);
@@ -510,7 +508,6 @@ public class WorkspaceController {
                 if (returnVal == JFileChooser.APPROVE_OPTION) {
                     File file = fc.getSelectedFile();
                     System.out.println("Writing to :" + file.getPath());
-                    String langDef = "";
                     StringBuilder text = new StringBuilder();
                     String NL = System.getProperty("line.separator");
                     Scanner scanner = null;
@@ -521,14 +518,14 @@ public class WorkspaceController {
                     }
                     try {
                         while (scanner.hasNextLine()) {
-                            text.append(scanner.nextLine() + NL);
+                            text.append(scanner.nextLine()).append(NL);
                         }
                     } finally {
                         scanner.close();
                     }
 
                     //Convert the string to a byte array.
-                    langDef = text.toString();
+                    String langDef = text.toString();
                     String s = workspace.getSaveString();
                     langDef = langDef.replaceAll("<Pages", "<!--");
                     langDef = langDef.replaceAll("</Pages>", "-->");
@@ -618,30 +615,21 @@ public class WorkspaceController {
                     doc = builder.parse(new InputSource(new StringReader(workspace.getSaveString())));
                     Element root = doc.getDocumentElement();
                     Page page = workspace.getPageNamed("Runtime");
-
-                    Iterator it = page.getTopLevelBlocks().iterator();
-                    while(it.hasNext())
-                    {
-                        RenderableBlock topBlock = (RenderableBlock) it.next();
-                        System.out.println(topBlock.getBlock().getBlockLabel());
-                        //topBlock.getBlock().getGenus().getGenusName() -gives the genus name
-                        //can write code according to that
-                        //if genus name is procedure or xbee, create a new string builder and 
-                        //string has to appended just after
-                        //#include <firebird.h>. Else, put it inside main function.
-                        
-                        if(topBlock.getBlock().getGenusName().equals("xbee"))
-                        {
-                            StringBuilder zigbee = new StringBuilder("");
-                            zigbee.append(wc.generateCode(topBlock.getBlock()));
-                            sb.append(zigbee).append(NL);
-                        }
-                        else
-                        {//Generate the outermost loop
-                        sb1.append(wc.generateCode(topBlock.getBlock()));
-                        }
-                    }
-                    sb1.append(NL+"}");
+                      for (Iterator<RenderableBlock> it = page.getTopLevelBlocks().iterator(); it.hasNext();) {
+                          RenderableBlock topBlock = it.next();
+                          System.out.println(topBlock.getBlock().getBlockLabel());
+                          if(topBlock.getBlock().getGenusName().equals("xbee"))
+                          {
+                              StringBuilder zigbee = new StringBuilder("");
+                              zigbee.append(wc.generateCode(topBlock.getBlock()));
+                              sb.append(zigbee).append(NL);
+                          }
+                          else
+                          {//Generate the outermost loop
+                              sb1.append(wc.generateCode(topBlock.getBlock()));
+                          }
+                      }
+                    sb1.append(NL).append("}");
                     sb.append(sb1);
                     System.out.println("#####################################");
                     
@@ -756,9 +744,7 @@ public class WorkspaceController {
             sb.append("SIGNAL(SIG_USART0_RECV)").append(NL);
             sb.append("{").append(NL);
             sb.append(" data = UDR0;");
-            Iterator it = block.getSockets().iterator();
-            while (it.hasNext()) {
-                BlockConnector bc = (BlockConnector) it.next();
+            for (BlockConnector bc : block.getSockets()) {
                 sb.append(this.generateCode(this.getByID(bc.getBlockID())));
             }
             sb.append(NL).append("}").append(NL);
@@ -796,10 +782,7 @@ public class WorkspaceController {
         
         if (block.getGenusName().equals("forever")) {
             StringBuilder sb = new StringBuilder("while(1){");
-
-            Iterator it = block.getSockets().iterator();
-            while (it.hasNext()) {
-                BlockConnector bc = (BlockConnector) it.next();
+            for (BlockConnector bc : block.getSockets()) {
                 sb.append(this.generateCode(this.getByID(bc.getBlockID())));
             }
             sb.append(NL).append("count++;").append(NL);
@@ -949,18 +932,15 @@ public class WorkspaceController {
         */
         if (block.getGenusName().equals("fd")) {
             StringBuilder sb = new StringBuilder("move_forward(");
-            Iterator it = block.getSockets().iterator();
-            while (it.hasNext()) {
-                BlockConnector bc = (BlockConnector) it.next();
+            for (BlockConnector bc : block.getSockets()) {
                 Block speed = this.getByID(bc.getBlockID());
-
-
+                
+                
                 if (bc.getBlockID() != null && bc.getBlockID() != -1) {
                     sb.append(this.generateCode(speed));
                 }
 
                 sb.append(");");
-
             }
             try {
                 if (block.getAfterBlockID() != null && block.getAfterBlockID() != -1) {
@@ -977,18 +957,15 @@ public class WorkspaceController {
 
         if (block.getGenusName().equals("bk")) {
             StringBuilder sb = new StringBuilder("move_backward(");
-            Iterator it = block.getSockets().iterator();
-            while (it.hasNext()) {
-                BlockConnector bc = (BlockConnector) it.next();
+            for (BlockConnector bc : block.getSockets()) {
                 Block condition = this.getByID(bc.getBlockID());
-
-
+                
+                
                 if (bc.getBlockID() != null && bc.getBlockID() != -1) {
                     sb.append(this.generateCode(condition));
                 }
 
                 sb.append(");");
-
             }
             try {
                 if (block.getAfterBlockID() != null && block.getAfterBlockID() != -1) {
@@ -1004,18 +981,15 @@ public class WorkspaceController {
 
         if (block.getGenusName().equals("left-fd")) {
             StringBuilder sb = new StringBuilder("move_forward_left(");
-            Iterator it = block.getSockets().iterator();
-            while (it.hasNext()) {
-                BlockConnector bc = (BlockConnector) it.next();
+            for (BlockConnector bc : block.getSockets()) {
                 Block condition = this.getByID(bc.getBlockID());
-
-
+                
+                
                 if (bc.getBlockID() != null && bc.getBlockID() != -1) {
                     sb.append(this.generateCode(condition));
                 }
 
                 sb.append(");");
-
             }
             try {
                 if (block.getAfterBlockID() != null && block.getAfterBlockID() != -1) {
@@ -1031,18 +1005,15 @@ public class WorkspaceController {
 
         if (block.getGenusName().equals("right-fd")) {
             StringBuilder sb = new StringBuilder("move_forward_right(");
-            Iterator it = block.getSockets().iterator();
-            while (it.hasNext()) {
-                BlockConnector bc = (BlockConnector) it.next();
+            for (BlockConnector bc : block.getSockets()) {
                 Block condition = this.getByID(bc.getBlockID());
-
-
+                
+                
                 if (bc.getBlockID() != null && bc.getBlockID() != -1) {
                     sb.append(this.generateCode(condition));
                 }
 
                 sb.append(");");
-
             }
             try {
                 if (block.getAfterBlockID() != null && block.getAfterBlockID() != -1) {
@@ -1057,18 +1028,15 @@ public class WorkspaceController {
         }
         if (block.getGenusName().equals("buzzer")) {
             StringBuilder sb = new StringBuilder("buzzer(");
-            Iterator it = block.getSockets().iterator();
-            while (it.hasNext()) {
-                BlockConnector bc = (BlockConnector) it.next();
+            for (BlockConnector bc : block.getSockets()) {
                 Block condition = this.getByID(bc.getBlockID());
-
-
+                
+                
                 if (bc.getBlockID() != null && bc.getBlockID() != -1) {
                     sb.append(this.generateCode(condition));
                 }
 
                 sb.append(");");
-
             }
             try {
                 if (block.getAfterBlockID() != null && block.getAfterBlockID() != -1) {
