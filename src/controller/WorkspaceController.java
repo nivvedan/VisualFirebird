@@ -610,6 +610,7 @@ public class WorkspaceController {
                 StringBuilder sb = new StringBuilder("//Start of the program"+NL);
                 StringBuilder sb1 = new StringBuilder("");
                     sb.append("#include <firebird.h>").append(NL);
+                    sb.append("unsigned int count;").append(NL);
                     sb1.append("void main(){").append(NL);
                     sb1.append("init_devices();").append(NL);
                 try {
@@ -769,7 +770,27 @@ public class WorkspaceController {
         if(block.getGenusName().equals("recvd-data"))
         {
             StringBuilder sb = new StringBuilder("");
-            
+            sb.append("data");
+            return sb.toString();
+        }
+        
+        if(block.getGenusName().equals("char"))
+        {
+            StringBuilder sb = new StringBuilder("");
+            sb.append("'").append(block.getBlockLabel()).append("'");
+            return sb.toString();
+        }
+        
+        if(block.getGenusName().equals("string"))
+        {
+            StringBuilder sb = new StringBuilder("");
+            sb.append("\"").append(block.getBlockLabel()).append("\"");
+            return sb.toString();
+        }
+        
+        if(block.getGenusName().equals("empty"))
+        {
+            StringBuilder sb = new StringBuilder("");
             return sb.toString();
         }
         
@@ -781,6 +802,7 @@ public class WorkspaceController {
                 BlockConnector bc = (BlockConnector) it.next();
                 sb.append(this.generateCode(this.getByID(bc.getBlockID())));
             }
+            sb.append(NL).append("count++;").append(NL);
             sb.append("}");
             return sb.toString();
 
@@ -1198,6 +1220,46 @@ public class WorkspaceController {
             }
             return sb.toString();
         }
+        
+        if (block.getGenusName().equals("strequals")) {
+            StringBuilder sb = new StringBuilder("(");
+            Iterator it = block.getSockets().iterator();
+            while (it.hasNext()) {
+                BlockConnector bc = (BlockConnector) it.next();
+                Block left = this.getByID(bc.getBlockID());
+                sb.append(this.generateCode(left));
+                Block right = null;
+                try {
+                    bc = (BlockConnector) it.next();
+                    right = this.getByID(bc.getBlockID());
+                    sb.append(" == ").append(this.generateCode(right));
+                } catch (Exception Ex) {
+                }
+                sb.append(")");
+            }
+            return sb.toString();
+        }
+        
+        
+        if (block.getGenusName().equals("charequals")) {
+            StringBuilder sb = new StringBuilder("(");
+            Iterator it = block.getSockets().iterator();
+            while (it.hasNext()) {
+                BlockConnector bc = (BlockConnector) it.next();
+                Block left = this.getByID(bc.getBlockID());
+                sb.append(this.generateCode(left));
+                Block right = null;
+                try {
+                    bc = (BlockConnector) it.next();
+                    right = this.getByID(bc.getBlockID());
+                    sb.append(" == ").append(this.generateCode(right));
+                } catch (Exception Ex) {
+                }
+                sb.append(")");
+            }
+            return sb.toString();
+        }
+        
 
         if (block.getGenusName().equals("notequals")) {
             StringBuilder sb = new StringBuilder("(");

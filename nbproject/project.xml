@@ -6,6 +6,7 @@
             <name>VisualFirebird</name>
             <source-roots>
                 <root id="src.dir"/>
+                <root id="src.support.dir"/>
             </source-roots>
             <test-roots/>
         </data>

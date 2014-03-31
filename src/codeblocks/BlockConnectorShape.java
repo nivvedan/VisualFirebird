@@ -87,6 +87,10 @@ public class BlockConnectorShape {
     
     public static final int COMMAND = 14;
     
+    public static final int CHAR_1 = 15;
+    public static final int CHAR_2 = 16;
+    public static final int CHAR_3 = 17;
+    
     public static final boolean DEBUG_MODE = false;
     
     
@@ -108,11 +112,14 @@ public class BlockConnectorShape {
     		addConnenctionShapeMapping("string", 7);
     		addConnenctionShapeMapping("string-list", 8);
     		addConnenctionShapeMapping("string-inv", 9);
-       	addConnenctionShapeMapping("poly", 10);
+           	addConnenctionShapeMapping("poly", 10);
     		addConnenctionShapeMapping("poly-list", 11);
     		addConnenctionShapeMapping("poly-inv", 12);
     		addConnenctionShapeMapping("proc-param", 13);
     		addConnenctionShapeMapping("cmd", 14);
+                addConnenctionShapeMapping("char", 15);
+                addConnenctionShapeMapping("char-list", 16);
+                addConnenctionShapeMapping("char-inv", 17);
     }
    
     ///////////////////////////////////////////
@@ -520,6 +527,13 @@ public class BlockConnectorShape {
 			break;
 
 		//look for additional 3rd party shapes here...
+                case CHAR_1:
+                        _lineTo( 0, DATA_PLUG_HEIGHT * 1 / 4);
+			_lineTo( NORMAL_DATA_PLUG_WIDTH, DATA_PLUG_HEIGHT * 1 / 4);
+			_lineTo( NORMAL_DATA_PLUG_WIDTH, DATA_PLUG_HEIGHT * 3 / 4);
+			//_lineTo( 0, DATA_PLUG_HEIGHT * 3 / 4);
+			_lineTo( 0, DATA_PLUG_HEIGHT);
+                    
 	
 		default:
 			//System.out.println("Connection Type Not Identified: " + connectionShape);
@@ -556,9 +570,9 @@ public class BlockConnectorShape {
 	 * connector.
 	 * 
 	 * Adds a curved segment, defined by three new points, to the path by
-	 * drawing a BŽzier curve that intersects both the current coordinates and
+	 * drawing a Bï¿½zier curve that intersects both the current coordinates and
 	 * the coordinates (x3, y3), using the specified points (x1, y1) and (x2,
-	 * y2) as BŽzier control points.
+	 * y2) as Bï¿½zier control points.
 	 */
     private void _curveTo(float x1, float y1, float x2, float y2, float x3, float y3)  {
     		currentConnectorPath.curveTo( 
