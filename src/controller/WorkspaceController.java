@@ -480,7 +480,7 @@ public class WorkspaceController {
      * event-dispatching thread.
      */
     private static void createAndShowGUI(final WorkspaceController wc) {
-        System.out.println("Creating GUI...123");
+        System.out.println("Creating GUI... Please Wait.");
 
         //Create and set up the window.
         JFrame frame = new JFrame("OpenBlocks Demo");
@@ -615,13 +615,13 @@ public class WorkspaceController {
                     doc = builder.parse(new InputSource(new StringReader(workspace.getSaveString())));
                     Element root = doc.getDocumentElement();
                     Page page = workspace.getPageNamed("Runtime");
-                      for (Iterator<RenderableBlock> it = page.getTopLevelBlocks().iterator(); it.hasNext();) {
-                          RenderableBlock topBlock = it.next();
-                          System.out.println(topBlock.getBlock().getBlockLabel());
-                          if(topBlock.getBlock().getGenusName().equals("xbee"))
+                      for (RenderableBlock topBlock : page.getTopLevelBlocks()) {
+                          System.out.println("Top block: " + topBlock.getBlock().getBlockLabel());
+                          if(!topBlock.getBlock().getGenusName().equals("forever"))
                           {
                               StringBuilder zigbee = new StringBuilder("");
                               zigbee.append(wc.generateCode(topBlock.getBlock()));
+                              System.out.println("Top block: " + topBlock.getBlock().getBlockLabel());
                               sb.append(zigbee).append(NL);
                           }
                           else
@@ -737,6 +737,19 @@ public class WorkspaceController {
 
         }
         */
+        
+        if (block.getGenusName().equals("procedure")) {
+            StringBuilder sb = new StringBuilder("");
+            sb.append(NL).append("void " + block.getBlockLabel() + " () {").append(NL);
+//            for (BlockConnector bc : block.getSockets()) {
+//                sb.append(this.generateCode(this.getByID(bc.getBlockID())));
+//            }
+            sb.append(this.generateCode(this.getByID(block.getAfterConnector().getBlockID())));
+            sb.append("}\n");
+//            block.getAfterConnector()
+            return sb.toString();
+        }
+        
         if(block.getGenusName().equals("xbee"))
         {
             StringBuilder sb = new StringBuilder("");
