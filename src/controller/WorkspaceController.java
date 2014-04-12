@@ -500,6 +500,7 @@ public class WorkspaceController {
         JButton saveButton = new JButton("Save");
         JButton openButton = new JButton("Open");
         JButton codeButton = new JButton("Get C Code");
+        JButton buildButton = new JButton("Get C Code and Build");
         saveButton.addActionListener(new ActionListener() {
 
             public void actionPerformed(ActionEvent e) {
@@ -667,12 +668,119 @@ public class WorkspaceController {
 
         });
         
+        buildButton.addActionListener(new ActionListener() {
+
+            public void actionPerformed(ActionEvent e) {
+
+
+                final JFileChooser fc = new JFileChooser();
+                int returnVal = fc.showSaveDialog(WorkspaceController.workspace);
+
+                if (returnVal == JFileChooser.APPROVE_OPTION) {
+                  File file = fc.getSelectedFile();
+
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder builder;
+                Document doc;
+                String NL = System.getProperty("line.separator");
+                StringBuilder sb = new StringBuilder("//Start of the program"+NL);
+                StringBuilder sb1 = new StringBuilder("");
+                    sb.append("#include <firebird.h>").append(NL);
+                    sb.append("unsigned int count;").append(NL);
+                    sb1.append("void main(){").append(NL);
+                    sb1.append("init_devices();").append(NL);
+                try {
+                    builder = factory.newDocumentBuilder();
+                    doc = builder.parse(new InputSource(new StringReader(workspace.getSaveString())));
+                    Element root = doc.getDocumentElement();
+                    Page page = workspace.getPageNamed("Runtime");
+                      for (RenderableBlock topBlock : page.getTopLevelBlocks()) {
+                          System.out.println("Top block: " + topBlock.getBlock().getBlockLabel());
+                          if(!topBlock.getBlock().getGenusName().equals("forever"))
+                          {
+                              StringBuilder zigbee = new StringBuilder("");
+                              zigbee.append(wc.generateCode(topBlock.getBlock()));
+                              System.out.println("Top block: " + topBlock.getBlock().getBlockLabel());
+                              sb.append(zigbee).append(NL);
+                          }
+                          else
+                          {//Generate the outermost loop
+                              sb1.append(wc.generateCode(topBlock.getBlock()));
+                          }
+                      }
+                    sb1.append(NL).append("}");
+                    sb.append(sb1);
+                    System.out.println("#####################################");
+                    
+                    System.out.println(sb.toString());
+                    System.out.println("#####################################");
+
+                    OutputStream out = null;
+                    try
+                    {
+                        byte data[] = sb.toString().getBytes();
+                        out = new BufferedOutputStream(new FileOutputStream(file));
+
+                        out.write(data, 0, data.length);
+                        
+                        //write code to call batch file which has the avr build command
+                        try 
+                        {
+                            ProcessBuilder pb = new ProcessBuilder("cmd", "/C", "Start", "C:\\Users\\DR.D.LAXMANA RAO\\Desktop\\VisualFirebird\\build.bat", file.getAbsolutePath());
+                            Process p = pb.start();
+                            p.waitFor();
+                        } 
+                        catch (Exception ex) 
+                        {
+                            ex.printStackTrace();
+                            //JOptionPane.showMessageDialog(this, "Error" +"Execution!","Error",JOptionPane.ERROR_MESSAGE);
+                        }
+                    }
+                    catch (IOException x) 
+                    {
+                        System.err.println(x);
+                    } 
+                    finally 
+                    {
+                        if (out != null) 
+                        {
+                            try 
+                            {
+                                out.flush();
+                                out.close();
+                            } 
+                            catch (IOException ex) 
+                            {
+                                Logger.getLogger(WorkspaceController.class.getName()).log(Level.SEVERE, null, ex);
+                            }
+
+                        }
+                    }
+
+                } 
+                catch (ParserConfigurationException ex) 
+                {
+                } 
+                catch (SAXException xe) 
+                {
+                } 
+                catch (IOException xe) 
+                {
+                }
+            }
+
+            }
+
+
+        });
+        
         JPanel topPane = new JPanel();
         searchBar.getComponent().setPreferredSize(new Dimension(130, 123));
         //  topPane.add(searchBar.getComponent());
         topPane.add(saveButton);
         topPane.add(openButton);
         topPane.add(codeButton);
+        topPane.add(buildButton);
         frame.add(topPane, BorderLayout.NORTH);
         frame.add(wc.getWorkspacePanel(), BorderLayout.CENTER);
 
@@ -958,6 +1066,68 @@ public class WorkspaceController {
                 }
                 else if(i==2){
                     sb.append(");lcd_string(");
+                }
+                else{
+                    sb.append(");");
+                }
+                i++;
+            }
+            try {
+                if (block.getAfterBlockID() != null && block.getAfterBlockID() != -1) {
+                    System.out.println(block.getAfterBlockID());
+                    sb.append(this.generateCode(this.getByID(block.getAfterBlockID())));
+                } else {
+                }
+            } catch (Exception ex) {
+                System.out.println(ex.getMessage());
+            }
+            return sb.toString();
+        }
+        
+        if (block.getGenusName().equals("lcdnum")) {
+            StringBuilder sb = new StringBuilder("lcd_cursor(");
+            int i=1;
+           // StringBuilder sb_temp = new StringBuilder("lcd_string(");
+            for (BlockConnector bc : block.getSockets()) {
+                Block display_text = this.getByID(bc.getBlockID());                
+
+                    if (bc.getBlockID() != null && bc.getBlockID() != -1) {
+                        sb.append(this.generateCode(display_text));
+                    }
+                if(i==1){
+                    sb.append(",");
+                }
+                else if(i==2){
+                    sb.append(");lcd_string(\"");
+                }
+                else{
+                    sb.append("\");");
+                }
+                i++;
+            }
+            try {
+                if (block.getAfterBlockID() != null && block.getAfterBlockID() != -1) {
+                    System.out.println(block.getAfterBlockID());
+                    sb.append(this.generateCode(this.getByID(block.getAfterBlockID())));
+                } else {
+                }
+            } catch (Exception ex) {
+                System.out.println(ex.getMessage());
+            }
+            return sb.toString();
+        }
+        
+        if (block.getGenusName().equals("URS")) {
+            StringBuilder sb = new StringBuilder("ultraSonicRangeSensor(");
+            int i=1;
+            for (BlockConnector bc : block.getSockets()) {
+                Block display_text = this.getByID(bc.getBlockID());                
+
+                    if (bc.getBlockID() != null && bc.getBlockID() != -1) {
+                        sb.append(this.generateCode(display_text));
+                    }
+                if(i==1){
+                    sb.append(",");
                 }
                 else{
                     sb.append(");");
