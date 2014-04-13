@@ -1,12 +1,78 @@
+/********************************************************************************
+Written by: AKSHAR/SHWETA ERTS LAB. IIT BOmbay
+ AVR Studio Version 4.17, Build 666
+
+ Date: 13th Sept. 2010
+ 
+ This JAVA file contains code to set-up the IDE and convert the visual program to C program.
+
+
+********************/
+/**************************
+
+   Copyright (c) 2010, ERTS LAB CSE IIT-Bombay            -*- c -*-
+   All rights reserved.
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions are met:
+
+   * Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+
+   * Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in
+     the documentation and/or other materials provided with the
+     distribution.
+
+   * Neither the name of the copyright holders nor the names of
+     contributors may be used to endorse or promote products derived
+     from this software without specific prior written permission.
+
+   * Source code can be used for academic purpose.
+     For commercial use permission form the author needs to be taken.
+
+  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+  POSSIBILITY OF SUCH DAMAGE.
+
+  Software released under Creative Commence cc by-nc-sa licence.
+  For legal information refer to:
+  http://creativecommons.org/licenses/by-nc-sa/3.0/legalcode
+
+********************************************************************************/
+
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <util/delay.h>
 #include <math.h>
-
-
+#include <inttypes.h>
 
 
 /*//////////////////////////////////////////////////////////////////////// */
+//buzzer on and off functions
+void buzzer_on (void)
+{
+ unsigned char port_restore = 0;
+ port_restore = PINC;
+ port_restore = port_restore | 0x08;
+ PORTC = port_restore;
+}
+
+void buzzer_off (void)
+{
+ unsigned char port_restore = 0;
+ port_restore = PINC;
+ port_restore = port_restore & 0xF7;
+ PORTC = port_restore;
+}
 
 // motion functions
 
@@ -22,21 +88,32 @@ void motion_pin_config (void)
 //Function to initialize ports
 void init_devices()
 {
+ cli();
  motion_pin_config();
  port_init();
  init_adc();
  timer5_init();
-init_lcd();
-lcd_init();
-lcd_set_4bit();
-
-init_buzzer();
-init_ir();
-
-
+ lcd_port_config();
+ lcd_set_4bit();
+ lcd_init();
+ //init_lcd();
+ init_buzzer();
+ init_ir();      
+ uart0_init();
+ sei();
 }
 
 
+
+void uart0_init(void) 
+{ 
+ UCSR0B = 0x00; //disable while setting baud rate
+ UCSR0A = 0x00;
+ UCSR0C = 0x06;
+ UBRR0L = 0x5F; //set baud rate lo
+ UBRR0H = 0x00; //set baud rate hi
+ UCSR0B = 0x98;
+} 
 
 
 //Function used for setting motor's direction
@@ -51,16 +128,6 @@ void motion_set (unsigned char Direction)
  PORTA = PortARestore; 			// setting the command to the port
 
 }
-
-
-/*#define MOVE_FWD forward()
-#define MOVE_REV back()
-#define MOVE_LEFT left()
-#define MOVE_RIGHT right()
-#define MOVE_SOFT_RIGHT soft_right()
-#define MOVE_SOFT_LEFT soft_left()
-#define MOVE_INPLACE_RIGHT inplace_right()
-#define MOVE_INPLACE_LEFT inplace_left()*/
 
 
 void MOVE_FWD(void) //both wheels forward
@@ -108,10 +175,6 @@ void STOP (void)
   motion_set(0x00);
 }
 
-
-
-
-
 // Timer 5 initialised in PWM mode for velocity control
 // Prescale:64
 // PWM 8bit fast, TOP=0x00FF
@@ -140,6 +203,7 @@ void timer5_init()
 
 void velocity (unsigned char left_motor, unsigned char right_motor)
 {
+	PORTA=0x06;
 	OCR5AL = (unsigned char)left_motor;
 	OCR5BL = (unsigned char)right_motor;
 }
@@ -202,18 +266,21 @@ void adc_pin_config (void)
 }
 
 
-
-//Function to Initialize PORTS
-void port_init()
+void buzzer_pin_config (void)
 {
-	
-	adc_pin_config();
-		
+ DDRC = DDRC | 0x08;		//Setting PORTC 3 as outpt
+ PORTC = PORTC & 0xF7;		//Setting PORTC 3 logic low to turnoff buzzer
 }
 
 
 
+//Function to Initialize PORTS
+void port_init()
+{
 
+	adc_pin_config();
+	
+}
 
 void init_adc()
 {
@@ -294,10 +361,6 @@ int front_dist_mm(void)
 }
 
 
-
-
-
-
 /*     ////////////////////////////////////////////////////////////////////////////////////////////////////////////   */
 
 // lcd functions
@@ -331,6 +394,12 @@ unsigned int million;
 
 int i;
 
+//Function to configure LCD port
+void lcd_port_config()
+{
+ DDRC = DDRC | 0xF7; //all the LCD pin's direction set as output
+ PORTC = PORTC & 0x80; // all the LCD pins are set to logic 0 except PORTC 7
+}
 
 void init_lcd()
 {
@@ -345,9 +414,6 @@ void init_lcd()
 	DDRJ = 0x00;
 	PORTJ = 0xFF;
 }
-
-
-
 
 /*****Function to Reset LCD*****/
 void lcd_set_4bit()
@@ -385,13 +451,14 @@ void lcd_set_4bit()
 	cbit(lcd_port,RW);				//RW=0 --- Writing to LCD
 	lcd_port = 0x20;				//Sending 2 to initialise LCD 4-bit mode
 	sbit(lcd_port,EN);				//Set Enable Pin
-	_delay_ms(5);					//Delay
+	_delay_ms(1);					//Delay
 	cbit(lcd_port,EN);				//Clear Enable Pin
 
 	
 }
 
 /*****Function to Initialize LCD*****/
+//Function to Initialize LCD
 void lcd_init()
 {
 	_delay_ms(1);
@@ -403,7 +470,6 @@ void lcd_init()
 	lcd_wr_command(0x80);
 		
 }
-
 	 
 /*****Function to Write Command on LCD*****/
 void lcd_wr_command(unsigned char cmd)
@@ -571,35 +637,12 @@ void itoa1(int n, char s[])
 }
 
 
-/*void LCD_DISPLAY_INT_1(int val)
-{
-unsigned char porta_restore,i;
-char display_data_line1[16];
-itoa1(val,display_data_line1);
-//lcd_init();
-//clear_screen();
-lcd_cursor(1,1);
-lcd_set_4bit();
-//go_to_next_line();
-for (i = 0; i<=16; i++)
- 	 {
-
-	 lcd_wr_char(display_data_line1[i]);
-	
- 	 }
-
-}*/
-	
-
 void LCD_DISPLAY_INT_2(int val)
 {	
 
-
-lcd_print(2,1,val,4);
+	lcd_print(2,1,val,4);
 
 }
-
-
 
 
 /*  ////////////////////////////////////////////    */
@@ -638,12 +681,6 @@ int i=0;
    port_C_copy = port_C_copy & 0xF7;
    PORTC = port_C_copy;	
 
-
-
-//PORTC = 0x08;			//Set pin3 to turn the "buzzer ON"
-//buzzer_delay();			//delay
-
-
 }
 
 
@@ -662,31 +699,25 @@ buzzer_delay();			//delay
 /***************************FIREBIRD.H***************************/
 
 void move_forward(int val)
-{
-	MOVE_FWD();
-
+{    PORTA=0x06;
 	 MOTOR_RIGHT_SPEED(val);
 	 MOTOR_LEFT_SPEED(val);
 }
 
 void move_forward_right(int val)
-{
-	MOVE_FWD();
-
+{	PORTA=0x06;
 	MOTOR_RIGHT_SPEED(0);
 	MOTOR_LEFT_SPEED(val);
 }
 
 void move_forward_left(int val)
-{
-	MOVE_FWD();
+{	PORTA=0x06;	
 	MOTOR_RIGHT_SPEED(val);
 	MOTOR_LEFT_SPEED(0);
 }
 
 void move_backward(int val)
-{
-	MOVE_REV();
+{	PORTA=0x09;
 	MOTOR_RIGHT_SPEED(val);
 	MOTOR_LEFT_SPEED(val);
 	
@@ -702,7 +733,7 @@ void buzzer(int val)
 
 int front_IR()
 {
-	return FRONT_IR;
+	return front_dist_mm();
 }
 
 int white_line_left()
@@ -719,8 +750,3 @@ int white_line_middle()
 {
 	return LIGHT_MIDDLE ;
 }
-
-
-
-
-
