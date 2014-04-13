@@ -740,13 +740,16 @@ public class WorkspaceController {
         
         if (block.getGenusName().equals("procedure")) {
             StringBuilder sb = new StringBuilder("");
-            sb.append(NL).append("void " + block.getBlockLabel() + " () {").append(NL);
-//            for (BlockConnector bc : block.getSockets()) {
-//                sb.append(this.generateCode(this.getByID(bc.getBlockID())));
-//            }
+            sb.append(NL).append("void ").append(block.getBlockLabel()).append(" () {").append(NL);
             sb.append(this.generateCode(this.getByID(block.getAfterConnector().getBlockID())));
-            sb.append("}\n");
-//            block.getAfterConnector()
+            sb.append("\n}\n");
+            return sb.toString();
+        }
+        
+        if (block.getGenusName().equals("caller")) {
+            StringBuilder sb = new StringBuilder("");
+            sb.append(block.getBlockLabel()).append("();");
+            sb.append(this.generateCode(this.getByID(block.getAfterConnector().getBlockID())));
             return sb.toString();
         }
         
