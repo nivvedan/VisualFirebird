@@ -56,6 +56,7 @@ Written by: AKSHAR/SHWETA ERTS LAB. IIT BOmbay
 #include <inttypes.h>
 
 
+void init_devices_xbee();
 /*//////////////////////////////////////////////////////////////////////// */
 //buzzer on and off functions
 void buzzer_on (void)
@@ -277,9 +278,8 @@ void buzzer_pin_config (void)
 //Function to Initialize PORTS
 void port_init()
 {
-
+	ultrasonic_trigger_config();
 	adc_pin_config();
-	
 }
 
 void init_adc()
@@ -292,23 +292,27 @@ void init_adc()
 }
 
 //Function For ADC Conversion
-unsigned char ADC_Conversion(unsigned char Ch) 
+unsigned int ADC_Conversion(unsigned char Ch)
 {
-	unsigned char a;
-	if(Ch>7)
-	{
-		ADCSRB = 0x08;
-	}
-	Ch = Ch & 0x07;  			
-	ADMUX= 0x20| Ch;	   		
-	ADCSRA = ADCSRA | 0x40;		//Set start conversion bit
-	while((ADCSRA&0x10)==0);	//Wait for conversion to complete
-	a=ADCH;
-	ADCSRA = ADCSRA|0x10;
-	ADCSRB = 0x00;
-	return a;
-}
+ //unsigned char a;
+ unsigned int a = 0,b = 0;
+ 
+ if(Ch>7)
+  {
+	ADCSRB = 0x08;
+  }
 
+ Ch = Ch & 0x07;  			
+ ADMUX= 0x20| Ch;	   		
+ ADCSRA = ADCSRA | 0x40;	    //Set start conversion bit
+ while((ADCSRA&0x10)==0);	    //Wait for ADC conversion to complete
+ b = (unsigned int)(ADCL>>6);   //read & adjust ADCL result to read as a right adjusted result
+ a = (unsigned int)(ADCH<<2);   //read & adjust ADCH result to read as a right adjusted result
+ a = a | b;                      
+ ADCSRA = ADCSRA|0x10; //clear ADIF (ADC Interrupt Flag) by writing 1 to it
+ ADCSRB = 0x00;
+ return a;
+}
 
 
 /***********************************************************************************
@@ -375,6 +379,13 @@ int front_dist_mm(void)
 #define sbit(reg,bit)	reg |= (1<<bit)
 #define cbit(reg,bit)	reg &= ~(1<<bit)
 
+
+int ultraSonicRangeSensor();
+void ultraSonicRangeSensorLCD(char row, char col);
+void ultrasonic_trigger_config();
+void adc_pin_config ();
+void lcd_port_config ();
+void ultrasonic_trigger();
 void init_ports();
 void lcd_reset_4bit();
 void lcd_init();
@@ -384,6 +395,7 @@ void lcd_home();
 void lcd_cursor(char, char);
 void lcd_print(char, char, unsigned int, int);
 void lcd_string(char*);
+void print_sensor(char row, char coloumn,unsigned char channel);
 
 unsigned int temp;
 unsigned int unit;
@@ -603,6 +615,14 @@ void lcd_print (char row, char coloumn, unsigned int value, int digits)
 }
 
 
+// This Function prints the Analog Value Of Corresponding Channel No. at required Row
+// and Coloumn Location. 
+void print_sensor(char row, char coloumn,unsigned char channel)
+{
+	unsigned char ADC_Value = ADC_Conversion(channel);
+	lcd_print(row, coloumn, ADC_Value, 3);
+}
+
 void LCD_DISPLAY_INT_1(int val)
 {
 
@@ -749,4 +769,62 @@ int white_line_right()
 int white_line_middle()
 {
 	return LIGHT_MIDDLE ;
+}
+
+
+/*void init_devices_xbee()
+{
+ cli(); //Clears the global interrupts
+ //port_init();  //Initializes all the ports
+ motion_pin_config();
+ buzzer_pin_config();
+ //adc_pin_config();
+ uart0_init(); //Initailize UART1 for serial communiaction
+ sei();   //Enables the global interrupts
+}*/
+
+////////////////////UltraSonic Range Sensor
+
+void ultrasonic_trigger()                 
+{
+ PORTB = PORTB | 0x10;  // make high the Trigger input for Ultrasonic sensor
+ _delay_us(50);         // Wait for >20usec
+ PORTB = PORTB & 0xEF;  // make low the Trigger input for Ultrasonic sensor
+}
+
+// ultarasonic trigger configuration
+void ultrasonic_trigger_config()
+{
+ DDRB = DDRB | 0x10;   // PB4 direction set as output
+ PORTB = PORTB & 0x00; // PB4 set to logic 0 
+}
+
+int ultraSonicRangeSensor(){
+	 ultrasonic_trigger();            // call ultrasonic triggering after enery 150msec  
+     _delay_ms(150);
+	 float distance_in_cm =0;
+	 unsigned int ADC_Value =0;
+	 unsigned in distance_in_cm_int = 0;
+	 ADC_Value = ADC_Conversion(15);
+ 
+     distance_in_cm = ADC_Value * 1.268;  // where, 5V/1024 = 0.00488/step & 9.85mV/2.54cm = 0.00385mV/cm
+                                        // for distance in cm, we get 0.00488/0.00385 = 1.267 as const multiplier
+	 distance_in_cm_int = floor(distance_in_cm);
+	 return distance_in_cm_int;
+}
+
+void ultraSonicRangeSensorLCD(char row, char col){
+	 lcd_set_4bit();                  // initialise LCD
+	 lcd_init(); 
+	 ultrasonic_trigger();            // call ultrasonic triggering after enery 150msec  
+     _delay_ms(150);
+	 float distance_in_cm =0;
+	 unsigned int ADC_Value =0;
+	 unsigned in distance_in_cm_int = 0;
+	 ADC_Value = ADC_Conversion(15);
+ 
+     distance_in_cm = ADC_Value * 1.268;  // where, 5V/1024 = 0.00488/step & 9.85mV/2.54cm = 0.00385mV/cm
+                                        // for distance in cm, we get 0.00488/0.00385 = 1.267 as const multiplier
+	 distance_in_cm_int = floor(distance_in_cm);
+	 lcd_print(row,col, distance_in_cm_int, 3);
 }

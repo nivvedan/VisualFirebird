@@ -726,10 +726,11 @@ public class WorkspaceController {
                         //write code to call batch file which has the avr build command
                         try 
                         {
-                            ProcessBuilder pb = new ProcessBuilder("cmd", "/C", "Start", "C:\\Users\\DR.D.LAXMANA RAO\\Desktop\\VisualFirebird\\build.bat", file.getAbsolutePath());
+                            ProcessBuilder pb = new ProcessBuilder("cmd", "/C", "Start", "C:\\Users\\DR.D.LAXMANA RAO\\Desktop\\VisualFirebird\\build.bat", file.getName());
                             Process p = pb.start();
                             p.waitFor();
-                        } 
+                            System.out.println("Build complete");
+                        }
                         catch (Exception ex) 
                         {
                             ex.printStackTrace();
@@ -864,9 +865,10 @@ public class WorkspaceController {
             sb.append(NL).append("unsigned char data;").append(NL);
             sb.append("SIGNAL(SIG_USART0_RECV)").append(NL);
             sb.append("{").append(NL);
-            sb.append(" data = UDR0;");
+            sb.append(" data = UDR0;\n ");
             for (BlockConnector bc : block.getSockets()) {
                 sb.append(this.generateCode(this.getByID(bc.getBlockID())));
+                sb.append(NL).append(" ");
             }
             sb.append(NL).append("}").append(NL);
             
@@ -895,6 +897,12 @@ public class WorkspaceController {
             return sb.toString();
         }
         
+        if(block.getGenusName().equals("stop"))
+        {
+            StringBuilder sb = new StringBuilder("STOP();");
+            return sb.toString();
+        }
+        
         if(block.getGenusName().equals("empty"))
         {
             StringBuilder sb = new StringBuilder("");
@@ -905,9 +913,10 @@ public class WorkspaceController {
             StringBuilder sb = new StringBuilder("while(1){");
             for (BlockConnector bc : block.getSockets()) {
                 sb.append(this.generateCode(this.getByID(bc.getBlockID())));
+                sb.append(NL).append(" ");
             }
-            sb.append(NL).append("count++;").append(NL);
-            sb.append("}");
+            sb.append(NL).append(" count++;").append(NL);
+            sb.append(" }");
             return sb.toString();
 
         }
@@ -933,7 +942,9 @@ public class WorkspaceController {
                 }
                 sb.append(this.generateCode(condition));
                 sb.append("){");
+                sb.append(NL).append(" ");
                 sb.append(this.generateCode(command));
+                sb.append(NL).append(" ");
                 sb.append("}");
 
             }
@@ -980,10 +991,14 @@ public class WorkspaceController {
                 }
                 sb.append(this.generateCode(condition));
                 sb.append("){");
+                sb.append(NL).append(" ");
                 sb.append(this.generateCode(command));
+                sb.append(NL).append(" ");
                 sb.append("}");
                 sb.append(" else{");
+                sb.append(NL).append(" ");
                 sb.append(this.generateCode(elsecommand));
+                sb.append(NL).append(" ");
                 sb.append("}");
 
             }
@@ -994,7 +1009,6 @@ public class WorkspaceController {
                 } else {
                 }
             } catch (Exception ex) {
-                System.out.println("Ouch!!");
                 System.out.println(ex.getMessage());
             }
             return sb.toString();
@@ -1098,10 +1112,10 @@ public class WorkspaceController {
                     sb.append(",");
                 }
                 else if(i==2){
-                    sb.append(");lcd_string(\"");
+                    sb.append(");lcd_print1(");
                 }
                 else{
-                    sb.append("\");");
+                    sb.append(",4);");
                 }
                 i++;
             }
@@ -1118,8 +1132,8 @@ public class WorkspaceController {
         }
         
         if (block.getGenusName().equals("URS")) {
-            StringBuilder sb = new StringBuilder("ultraSonicRangeSensor(");
-            int i=1;
+            StringBuilder sb = new StringBuilder("ultraSonicRangeSensor()");
+            /*int i=1;
             for (BlockConnector bc : block.getSockets()) {
                 Block display_text = this.getByID(bc.getBlockID());                
 
@@ -1142,7 +1156,7 @@ public class WorkspaceController {
                 }
             } catch (Exception ex) {
                 System.out.println(ex.getMessage());
-            }
+            }*/
             return sb.toString();
         }
         
