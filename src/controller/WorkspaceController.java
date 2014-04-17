@@ -1,3 +1,5 @@
+/** The main class **/
+
 package controller;
 
 import codeblocks.Block;
@@ -58,6 +60,7 @@ import workspace.Page;
  */
 public class WorkspaceController {
 
+    // path to lang_def.xml file
     private static String LANG_DEF_FILEPATH;
     private static Element langDefRoot;
 
@@ -668,6 +671,8 @@ public class WorkspaceController {
 
         });
         
+        
+        //in progress. yet to be completed
         buildButton.addActionListener(new ActionListener() {
 
             public void actionPerformed(ActionEvent e) {
@@ -789,6 +794,7 @@ public class WorkspaceController {
 
     }
 
+    //The main function
     public static void main(String[] args) {
         //Schedule a job for the event-dispatching thread:
         //creating and showing this application's GUI.
@@ -828,10 +834,11 @@ public class WorkspaceController {
         });
     }
 
+    // function to generate C code for various blocks.
     public String generateCode(Block block) {
         String NL = System.getProperty("line.separator");
         String str = "";
-        //System.out.println(block.getGenusName());
+        
         /*
         if (block.getGenusName().equals("runforsometime")) {
             StringBuilder sb = new StringBuilder("while(1){");
@@ -1017,7 +1024,7 @@ public class WorkspaceController {
             return sb.toString();
         }
         
-        /*
+
         if (block.getGenusName().equals("repeat")) {
             StringBuilder sb = new StringBuilder("if(");
             Iterator it = block.getSockets().iterator();
@@ -1067,7 +1074,7 @@ public class WorkspaceController {
             }
             return sb.toString();
         }
-        */
+
         if (block.getGenusName().equals("lcd")) {
             StringBuilder sb = new StringBuilder("lcd_cursor(");
             int i=1;
@@ -1160,6 +1167,31 @@ public class WorkspaceController {
             } catch (Exception ex) {
                 System.out.println(ex.getMessage());
             }*/
+            return sb.toString();
+        }
+        
+        //incomplete
+        if (block.getGenusName().equals("decl")) {
+            StringBuilder sb = new StringBuilder("int ");
+            for (BlockConnector bc : block.getSockets()) {
+                Block speed = this.getByID(bc.getBlockID());
+                
+                
+                if (bc.getBlockID() != null && bc.getBlockID() != -1) {
+                    sb.append(this.generateCode(speed));
+                }
+
+                sb.append(";");
+            }
+            try {
+                if (block.getAfterBlockID() != null && block.getAfterBlockID() != -1) {
+                    System.out.println(block.getAfterBlockID());
+                    sb.append(this.generateCode(this.getByID(block.getAfterBlockID())));
+                } else {
+                }
+            } catch (Exception ex) {
+                System.out.println(ex.getMessage());
+            }
             return sb.toString();
         }
         
@@ -1279,6 +1311,26 @@ public class WorkspaceController {
                 }
             } catch (Exception ex) {
                 System.out.println(ex.getMessage());
+            }
+            return sb.toString();
+        }
+        
+        
+        if (block.getGenusName().equals("assign")) {
+            StringBuilder sb = new StringBuilder("");
+            Iterator it = block.getSockets().iterator();
+            while (it.hasNext()) {
+                BlockConnector bc = (BlockConnector) it.next();
+                Block left = this.getByID(bc.getBlockID());
+                sb.append(this.generateCode(left));
+                Block right = null;
+                try {
+                    bc = (BlockConnector) it.next();
+                    right = this.getByID(bc.getBlockID());
+                    sb.append(" = ").append(this.generateCode(right));
+                } catch (Exception Ex) {
+                }
+                //sb.append(")");
             }
             return sb.toString();
         }
@@ -1461,6 +1513,25 @@ public class WorkspaceController {
             return sb.toString();
         }
         
+        
+        if (block.getGenusName().equals("numequals")) {
+            StringBuilder sb = new StringBuilder("");
+            Iterator it = block.getSockets().iterator();
+            while (it.hasNext()) {
+                BlockConnector bc = (BlockConnector) it.next();
+                Block left = this.getByID(bc.getBlockID());
+                sb.append(this.generateCode(left));
+                Block right = null;
+                try {
+                    bc = (BlockConnector) it.next();
+                    right = this.getByID(bc.getBlockID());
+                    sb.append(" == ").append(this.generateCode(right));
+                } catch (Exception Ex) {
+                }
+                //sb.append(")");
+            }
+            return sb.toString();
+        }
 
         if (block.getGenusName().equals("notequals")) {
             StringBuilder sb = new StringBuilder("(");
