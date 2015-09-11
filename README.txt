@@ -1,7 +1,7 @@
 VisualFirebird
 ==============
 
-Visual Programming Enviranment for Firebird
+Visual Programming Environment for Firebird
 
 Team: embed'em
 
